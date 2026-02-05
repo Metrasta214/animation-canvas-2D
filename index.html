@@ -4,29 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>POO con Canvas</title>
-
-  <!-- (Opcional) favicon si lo tienes en /img/favicon.ico -->
-  <link rel="icon" href="img/favicon.ico" type="image/x-icon" />
+  <link rel="icon" href="img/favicon.png" type="image/x-icon" />
 </head>
 
 <body>
   <canvas id="canvas"></canvas>
 
   <!-- Controles debajo del canvas -->
-  <div style="margin-top: 10px; font-family: Arial, sans-serif;">
-    <label for="circleSlider">
-      Cantidad de círculos: <strong id="circleCount">5</strong>
-    </label>
-    <br />
-    <input
-      type="range"
-      id="circleSlider"
-      min="1"
-      max="10"
-      value="5"
-      step="1"
-      style="width: 50%;"
-    />
+  <div style="margin-top: 10px; font-family: Arial, sans-serif; max-width: 720px;">
+    <!-- Slider: Cantidad de círculos -->
+    <div style="margin-bottom: 10px;">
+      <label for="circleSlider">
+        Cantidad de círculos: <strong id="circleCount">5</strong>
+      </label>
+      <br />
+      <input type="range" id="circleSlider" min="1" max="10" value="5" step="1" style="width: 100%;" />
+    </div>
+
+    <!-- Slider: Tamaño del canvas -->
+    <div>
+      <label for="canvasSlider">
+        Tamaño del canvas: <strong id="canvasPercent">100%</strong>
+      </label>
+      <br />
+      <input type="range" id="canvasSlider" min="30" max="100" value="100" step="1" style="width: 100%;" />
+      <div style="font-size: 12px; opacity: 0.75; margin-top: 4px;">
+        (Escala aplicada al canvas base: mitad de pantalla)
+      </div>
+    </div>
   </div>
 
   <script src="js/main.js"></script>

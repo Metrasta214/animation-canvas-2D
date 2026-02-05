@@ -5,24 +5,27 @@ const ctx = canvas.getContext("2d");
 const window_height = window.innerHeight;
 const window_width = window.innerWidth;
 
-// Canvas a la mitad
-canvas.height = window_height / 2;
-canvas.width = window_width / 2;
+// Canvas base (mitad de pantalla)
+const base_canvas_width = window_width / 2;
+const base_canvas_height = window_height / 2;
+
+// Fondo del canvas
 canvas.style.background = "#ff8";
 
-// Dimensiones reales del canvas
-const canvas_height = canvas.height;
-const canvas_width = canvas.width;
-
-// Slider y texto del valor
+// Sliders
 const circleSlider = document.getElementById("circleSlider");
 const circleCount = document.getElementById("circleCount");
 
-// Colores (solo para diferenciar)
+const canvasSlider = document.getElementById("canvasSlider");
+const canvasPercent = document.getElementById("canvasPercent");
+
+// Colores para diferenciar
 const COLORS = ["blue", "red", "green", "purple", "orange", "brown", "black", "teal", "magenta", "navy"];
 
-// Arreglo global de círculos (se regenera con el slider)
+// Estado
 let circles = [];
+let canvas_width = base_canvas_width;
+let canvas_height = base_canvas_height;
 
 class Circle {
   constructor(x, y, radius, color, text, speed) {
@@ -57,12 +60,18 @@ class Circle {
     context.closePath();
   }
 
+  // Mantener dentro del canvas (por si cambia el tamaño)
+  clampToCanvas() {
+    this.posX = Math.max(this.radius, Math.min(this.posX, canvas_width - this.radius));
+    this.posY = Math.max(this.radius, Math.min(this.posY, canvas_height - this.radius));
+  }
+
   update(context) {
     // Mueve
     this.posX += this.dx;
     this.posY += this.dy;
 
-    // Limita + rebota (nunca se sale del canvas)
+    // Rebote + clamp (nunca se sale)
     // Derecha
     if (this.posX + this.radius >= canvas_width) {
       this.posX = canvas_width - this.radius;
@@ -89,39 +98,32 @@ class Circle {
   }
 }
 
-/* ==========================================================
-   VELOCIDADES ÚNICAS
-   - Genera velocidades únicas para que no se repitan
-   ========================================================== */
+/* =========================
+   Velocidades únicas
+   ========================= */
 function shuffledUniqueSpeeds(n) {
   const speedsPool = [1,2,3,4,5,6,7,8,9,10];
-
-  // Fisher-Yates shuffle
   for (let i = speedsPool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [speedsPool[i], speedsPool[j]] = [speedsPool[j], speedsPool[i]];
   }
-
   return speedsPool.slice(0, n);
 }
 
-/* ==========================================================
-   GENERAR CÍRCULOS SEGÚN N (slider)
-   - Texto: 1..N
-   - Velocidad: distinta para cada uno
-   - Posición: dentro del canvas (considerando radio)
-   ========================================================== */
+/* =========================
+   Generar círculos (1..N)
+   ========================= */
 function generateCircles(n) {
   const speeds = shuffledUniqueSpeeds(n);
   const newCircles = [];
 
   for (let i = 0; i < n; i++) {
-    const radius = Math.floor(Math.random() * 40) + 25; // 25..64 (ajustable)
+    const radius = Math.floor(Math.random() * 40) + 25; // 25..64
 
+    // Posición aleatoria dentro del canvas actual
     let x = Math.random() * canvas_width;
     let y = Math.random() * canvas_height;
 
-    // Evita que nazcan fuera del margen
     x = Math.max(radius, Math.min(x, canvas_width - radius));
     y = Math.max(radius, Math.min(y, canvas_height - radius));
 
@@ -132,35 +134,58 @@ function generateCircles(n) {
     newCircles.push(new Circle(x, y, radius, color, text, speed));
   }
 
-  circles = newCircles; // reemplaza los círculos actuales
+  circles = newCircles;
 }
 
-/* ==========================================================
-   EVENTO DEL SLIDER
-   - Cada vez que cambie, regenera los círculos
-   ========================================================== */
-function onSliderChange() {
+/* =========================
+   Ajustar tamaño del canvas
+   ========================= */
+function setCanvasScale(percent) {
+  // percent: 30..100
+  const scale = percent / 100;
+
+  canvas_width = Math.floor(base_canvas_width * scale);
+  canvas_height = Math.floor(base_canvas_height * scale);
+
+  canvas.width = canvas_width;
+  canvas.height = canvas_height;
+
+  // Reajusta posición de todos para que sigan dentro
+  for (const c of circles) c.clampToCanvas();
+}
+
+/* =========================
+   Eventos sliders
+   ========================= */
+function onCircleSlider() {
   const n = Number(circleSlider.value);
   circleCount.textContent = n;
   generateCircles(n);
 }
 
-// Inicial
-onSliderChange();
+function onCanvasSlider() {
+  const percent = Number(canvasSlider.value);
+  canvasPercent.textContent = `${percent}%`;
+  setCanvasScale(percent);
+}
 
-// Regenerar en tiempo real al mover el slider
-circleSlider.addEventListener("input", onSliderChange);
+/* =========================
+   Inicialización
+   ========================= */
+circleSlider.addEventListener("input", onCircleSlider);
+canvasSlider.addEventListener("input", onCanvasSlider);
 
-/* ==========================================================
-   LOOP DE ANIMACIÓN
-   ========================================================== */
+// Valores iniciales
+onCanvasSlider();
+onCircleSlider();
+
+/* =========================
+   Animación
+   ========================= */
 function animate() {
   requestAnimationFrame(animate);
   ctx.clearRect(0, 0, canvas_width, canvas_height);
-
-  for (const c of circles) {
-    c.update(ctx);
-  }
+  for (const c of circles) c.update(ctx);
 }
 
 animate();
