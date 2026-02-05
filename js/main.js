@@ -14,11 +14,15 @@ canvas.style.background = "#ff8";
 const canvas_height = canvas.height;
 const canvas_width = canvas.width;
 
-// Número aleatorio de círculos: 1 a 10
-const NUM_CIRCLES = Math.floor(Math.random() * 10) + 1;
+// Slider y texto del valor
+const circleSlider = document.getElementById("circleSlider");
+const circleCount = document.getElementById("circleCount");
 
-// Colores (opcional, para diferenciar)
+// Colores (solo para diferenciar)
 const COLORS = ["blue", "red", "green", "purple", "orange", "brown", "black", "teal", "magenta", "navy"];
+
+// Arreglo global de círculos (se regenera con el slider)
+let circles = [];
 
 class Circle {
   constructor(x, y, radius, color, text, speed) {
@@ -38,7 +42,7 @@ class Circle {
   draw(context) {
     context.beginPath();
 
-    // Texto dentro del círculo
+    // Texto
     context.fillStyle = "black";
     context.textAlign = "center";
     context.textBaseline = "middle";
@@ -59,7 +63,6 @@ class Circle {
     this.posY += this.dy;
 
     // Limita + rebota (nunca se sale del canvas)
-
     // Derecha
     if (this.posX + this.radius >= canvas_width) {
       this.posX = canvas_width - this.radius;
@@ -87,49 +90,66 @@ class Circle {
 }
 
 /* ==========================================================
-   CREAR VELOCIDADES ÚNICAS PARA CADA CÍRCULO
-   - Generamos una lista de velocidades posibles y la mezclamos
-   - Luego tomamos las primeras N, así TODAS serán diferentes
+   VELOCIDADES ÚNICAS
+   - Genera velocidades únicas para que no se repitan
    ========================================================== */
 function shuffledUniqueSpeeds(n) {
-  // Puedes ajustar el rango si quieres más rápido/lento (1..10 por ejemplo)
   const speedsPool = [1,2,3,4,5,6,7,8,9,10];
 
-  // Mezcla tipo Fisher-Yates
+  // Fisher-Yates shuffle
   for (let i = speedsPool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [speedsPool[i], speedsPool[j]] = [speedsPool[j], speedsPool[i]];
   }
 
-  return speedsPool.slice(0, n); // primeras n (todas únicas)
+  return speedsPool.slice(0, n);
 }
-
-const speeds = shuffledUniqueSpeeds(NUM_CIRCLES);
 
 /* ==========================================================
-   CREAR CÍRCULOS ALEATORIOS
+   GENERAR CÍRCULOS SEGÚN N (slider)
    - Texto: 1..N
-   - Velocidad: distinta en cada uno
+   - Velocidad: distinta para cada uno
    - Posición: dentro del canvas (considerando radio)
    ========================================================== */
-const circles = [];
+function generateCircles(n) {
+  const speeds = shuffledUniqueSpeeds(n);
+  const newCircles = [];
 
-for (let i = 0; i < NUM_CIRCLES; i++) {
-  const radius = Math.floor(Math.random() * 40) + 25; // radio 25..64 (ajustable)
+  for (let i = 0; i < n; i++) {
+    const radius = Math.floor(Math.random() * 40) + 25; // 25..64 (ajustable)
 
-  // Posición dentro del canvas (sin salirse por radio)
-  let x = Math.random() * canvas_width;
-  let y = Math.random() * canvas_height;
+    let x = Math.random() * canvas_width;
+    let y = Math.random() * canvas_height;
 
-  x = Math.max(radius, Math.min(x, canvas_width - radius));
-  y = Math.max(radius, Math.min(y, canvas_height - radius));
+    // Evita que nazcan fuera del margen
+    x = Math.max(radius, Math.min(x, canvas_width - radius));
+    y = Math.max(radius, Math.min(y, canvas_height - radius));
 
-  const color = COLORS[i % COLORS.length];
-  const text = String(i + 1);          // 1..N
-  const speed = speeds[i];             // distinta para cada círculo
+    const color = COLORS[i % COLORS.length];
+    const text = String(i + 1);
+    const speed = speeds[i];
 
-  circles.push(new Circle(x, y, radius, color, text, speed));
+    newCircles.push(new Circle(x, y, radius, color, text, speed));
+  }
+
+  circles = newCircles; // reemplaza los círculos actuales
 }
+
+/* ==========================================================
+   EVENTO DEL SLIDER
+   - Cada vez que cambie, regenera los círculos
+   ========================================================== */
+function onSliderChange() {
+  const n = Number(circleSlider.value);
+  circleCount.textContent = n;
+  generateCircles(n);
+}
+
+// Inicial
+onSliderChange();
+
+// Regenerar en tiempo real al mover el slider
+circleSlider.addEventListener("input", onSliderChange);
 
 /* ==========================================================
    LOOP DE ANIMACIÓN
