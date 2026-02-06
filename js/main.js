@@ -1,31 +1,34 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-// Dimensiones de ventana
-const window_height = window.innerHeight;
-const window_width = window.innerWidth;
+const canvasWrap = document.getElementById("canvasWrap");
 
-// Canvas base (mitad de pantalla)
-const base_canvas_width = window_width / 2;
-const base_canvas_height = window_height / 2;
-
-// Fondo del canvas
-canvas.style.background = "#ff8";
-
-// Sliders
+// Sliders y labels
 const circleSlider = document.getElementById("circleSlider");
 const circleCount = document.getElementById("circleCount");
 
 const canvasSlider = document.getElementById("canvasSlider");
 const canvasPercent = document.getElementById("canvasPercent");
 
-// Colores para diferenciar
-const COLORS = ["blue", "red", "green", "purple", "orange", "brown", "black", "teal", "magenta", "navy"];
+// Botones
+const btnRegenerar = document.getElementById("btnRegenerar");
+const btnAleatorio = document.getElementById("btnAleatorio");
 
-// Estado
-let circles = [];
+// Footer year
+document.getElementById("year").textContent = new Date().getFullYear();
+
+// Colores
+const COLORS = ["blue","red","green","purple","orange","brown","black","teal","magenta","navy"];
+
+// ✅ Base FIJA del canvas: se toma 1 vez del cuadro (y ya NO cambia)
+const base_canvas_width = canvasWrap.clientWidth;
+const base_canvas_height = canvasWrap.clientHeight;
+
+// Medidas actuales (dependen del slider)
 let canvas_width = base_canvas_width;
 let canvas_height = base_canvas_height;
+
+let circles = [];
 
 class Circle {
   constructor(x, y, radius, color, text, speed) {
@@ -36,7 +39,6 @@ class Circle {
     this.text = text;
     this.speed = speed;
 
-    // Dirección aleatoria (360°)
     const angle = Math.random() * Math.PI * 2;
     this.dx = Math.cos(angle) * this.speed;
     this.dy = Math.sin(angle) * this.speed;
@@ -45,14 +47,12 @@ class Circle {
   draw(context) {
     context.beginPath();
 
-    // Texto
     context.fillStyle = "black";
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.font = "20px Arial";
     context.fillText(this.text, this.posX, this.posY);
 
-    // Círculo
     context.strokeStyle = this.color;
     context.lineWidth = 2;
     context.arc(this.posX, this.posY, this.radius, 0, Math.PI * 2, false);
@@ -60,47 +60,37 @@ class Circle {
     context.closePath();
   }
 
-  // Mantener dentro del canvas (por si cambia el tamaño)
   clampToCanvas() {
     this.posX = Math.max(this.radius, Math.min(this.posX, canvas_width - this.radius));
     this.posY = Math.max(this.radius, Math.min(this.posY, canvas_height - this.radius));
   }
 
   update(context) {
-    // Mueve
     this.posX += this.dx;
     this.posY += this.dy;
 
-    // Rebote + clamp (nunca se sale)
-    // Derecha
+    // Rebote + clamp
     if (this.posX + this.radius >= canvas_width) {
       this.posX = canvas_width - this.radius;
       this.dx = -this.dx;
     }
-    // Izquierda
     if (this.posX - this.radius <= 0) {
       this.posX = this.radius;
       this.dx = -this.dx;
     }
-    // Abajo
     if (this.posY + this.radius >= canvas_height) {
       this.posY = canvas_height - this.radius;
       this.dy = -this.dy;
     }
-    // Arriba
     if (this.posY - this.radius <= 0) {
       this.posY = this.radius;
       this.dy = -this.dy;
     }
 
-    // Dibuja
     this.draw(context);
   }
 }
 
-/* =========================
-   Velocidades únicas
-   ========================= */
 function shuffledUniqueSpeeds(n) {
   const speedsPool = [1,2,3,4,5,6,7,8,9,10];
   for (let i = speedsPool.length - 1; i > 0; i--) {
@@ -110,17 +100,13 @@ function shuffledUniqueSpeeds(n) {
   return speedsPool.slice(0, n);
 }
 
-/* =========================
-   Generar círculos (1..N)
-   ========================= */
 function generateCircles(n) {
   const speeds = shuffledUniqueSpeeds(n);
   const newCircles = [];
 
   for (let i = 0; i < n; i++) {
-    const radius = Math.floor(Math.random() * 40) + 25; // 25..64
+    const radius = Math.floor(Math.random() * 40) + 25;
 
-    // Posición aleatoria dentro del canvas actual
     let x = Math.random() * canvas_width;
     let y = Math.random() * canvas_height;
 
@@ -137,26 +123,24 @@ function generateCircles(n) {
   circles = newCircles;
 }
 
-/* =========================
-   Ajustar tamaño del canvas
-   ========================= */
+/* ✅ Cambiar tamaño del canvas SIN crecer el cuadro */
 function setCanvasScale(percent) {
-  // percent: 30..100
   const scale = percent / 100;
 
   canvas_width = Math.floor(base_canvas_width * scale);
   canvas_height = Math.floor(base_canvas_height * scale);
 
+  // Cambia el tamaño real del canvas (lienzo), pero el cuadro NO cambia
   canvas.width = canvas_width;
   canvas.height = canvas_height;
 
-  // Reajusta posición de todos para que sigan dentro
+  // Centrado visual dentro del wrap (por si es más chico)
+  canvas.style.width = canvas_width + "px";
+  canvas.style.height = canvas_height + "px";
+
   for (const c of circles) c.clampToCanvas();
 }
 
-/* =========================
-   Eventos sliders
-   ========================= */
 function onCircleSlider() {
   const n = Number(circleSlider.value);
   circleCount.textContent = n;
@@ -169,23 +153,34 @@ function onCanvasSlider() {
   setCanvasScale(percent);
 }
 
-/* =========================
-   Inicialización
-   ========================= */
+btnRegenerar.addEventListener("click", () => {
+  generateCircles(Number(circleSlider.value));
+});
+
+btnAleatorio.addEventListener("click", () => {
+  const randomCircles = Math.floor(Math.random() * 10) + 1;
+  const randomCanvas = Math.floor(Math.random() * 71) + 30;
+
+  circleSlider.value = String(randomCircles);
+  canvasSlider.value = String(randomCanvas);
+
+  circleCount.textContent = randomCircles;
+  canvasPercent.textContent = `${randomCanvas}%`;
+
+  setCanvasScale(randomCanvas);
+  generateCircles(randomCircles);
+});
+
 circleSlider.addEventListener("input", onCircleSlider);
 canvasSlider.addEventListener("input", onCanvasSlider);
 
-// Valores iniciales
-onCanvasSlider();
+// Inicial
+setCanvasScale(Number(canvasSlider.value));
 onCircleSlider();
 
-/* =========================
-   Animación
-   ========================= */
 function animate() {
   requestAnimationFrame(animate);
   ctx.clearRect(0, 0, canvas_width, canvas_height);
   for (const c of circles) c.update(ctx);
 }
-
 animate();
